@@ -1,0 +1,49 @@
+---
+- hosts: debian:centos
+  become: yes
+  vars:
+    doc_root: /var/www/html
+    app_repo: https://github.com/ebubevick/Linux-Command-Assignment.git
+    packages:
+      RedHat: httpd
+      Debian: apache2
+  tasks:
+    - name: Install Git
+      package:
+        name: git
+        state: present
+
+    - name: Install Apache
+      package: 
+        name: "{{ packages[ansible_os_family] }}"
+        state: present
+    
+    - name: Clone app from GitHub
+      git: 
+        repo: "{{ app_repo }}"
+        dest: "{{ ansible_env.PWD }}/app"
+        clone: yes
+        update: yes
+        force: yes
+
+    - name: Check if directory exists and list contents
+      command: 
+        ls -la "{{ ansible_env.PWD }}/app"
+  
+    - name: Copy app files to document root
+      shell: 
+        cmd: "cp {{ ansible_env.PWD }}/app/* {{ doc_root }}"
+
+    - name: Change ownership of the app files
+      file: 
+        path: "{{ doc_root }}"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Ensure Apache is running and enabled
+      service: 
+        name: "{{ packages[ansible_os_family] }}"
+        state: started
+        enabled: yes
+
